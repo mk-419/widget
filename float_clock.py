@@ -2,7 +2,9 @@
 from datetime import datetime, tzinfo
 
 import gi, cairo
+
 gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
 from gi.repository import Gdk, GLib, Gtk
 
 class Main(Gtk.Window):
@@ -16,6 +18,11 @@ class Main(Gtk.Window):
         self.set_keep_below(True)
         self.set_type_hint(Gdk.WindowTypeHint.DOCK)
 
+        monitor = self.get_display().get_primary_monitor()
+        geometry = monitor.get_geometry()
+        scale_factor = monitor.get_scale_factor()
+        self.move(geometry.width * scale_factor - 500, 0)
+
         self.connect("button-press-event", self.click)
         self.connect("button-release-event", self.release)
         self.connect("motion-notify-event", self.mousemove)
@@ -23,6 +30,9 @@ class Main(Gtk.Window):
         self.h = {}
         self.m = {}
         self.s = {}
+
+        self.drag = False
+        self.fixed = False
 
         self.get_time()
 
@@ -33,11 +43,19 @@ class Main(Gtk.Window):
         
         GLib.timeout_add_seconds(1, self.update)
 
-        hbox = Gtk.VBox()
-        hbox.add(self.draw_jst)
-        hbox.add(self.draw_utc)
+        vbox = Gtk.VBox()
+        vbox.add(self.draw_jst)
+        vbox.add(self.draw_utc)
 
-        self.add(hbox)
+        self.menu = Gtk.Menu()
+        end = Gtk.MenuItem().new_with_label("終了")
+        end.connect("activate", Gtk.main_quit)
+        fix = Gtk.CheckMenuItem().new_with_label("固定")
+        fix.connect("toggled", self.fix)
+        self.menu.add(end)
+        self.menu.add(fix)
+
+        self.add(vbox)
     
     def draw(self, widget, ctx, tz):
         def box(ctx):
@@ -137,19 +155,32 @@ class Main(Gtk.Window):
         self.s["UTC"] = now_utc.second
     
     def click(self, widget, event):
-        self.drag =  True
-        self.x_click = event.x
-        self.y_click = event.y
+        if event.button == 1 and not self.fixed:
+            self.drag =  True
+            self.x_click = event.x
+            self.y_click = event.y
+        elif event.button == 3:
+            self.drag =  False
+            self.menu.show_all()
+            self.menu.popup_at_pointer()
+        else:
+            self.drag =  False
+            self.menu.popdown()
 
     def release(self, widget, event):
         self.drag =  False
 
-    def mousemove(self,widget,event):
+    def mousemove(self, widget, event):
         if self.drag:
             self.move(int(event.x_root - self.x_click), int(event.y_root - self.y_click))
+    
+    def fix(self, widget):
+        if widget.get_active():
+            self.fixed = True
+        else:
+            self.fixed = False
 
 if __name__ == '__main__':
     win = Main()
     win.show_all()
-    win.connect("destroy", Gtk.main_quit)
     Gtk.main()
