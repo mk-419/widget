@@ -3,7 +3,7 @@ from datetime import datetime, tzinfo
 
 import gi, cairo
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, GLib
+from gi.repository import Gdk, GLib, Gtk
 
 class Main(Gtk.Window):
     def __init__(self):
@@ -12,6 +12,9 @@ class Main(Gtk.Window):
         self.set_visual(self.get_screen().get_rgba_visual())
         self.set_default_size(500, 600)
         self.set_decorated(False)
+
+        self.set_keep_below(True)
+        self.set_type_hint(Gdk.WindowTypeHint.DOCK)
 
         self.connect("button-press-event", self.click)
         self.connect("button-release-event", self.release)
