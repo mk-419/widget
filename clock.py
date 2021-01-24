@@ -1,38 +1,22 @@
 #!/usr/bin/env python3
+# Standard Lib
 from datetime import datetime, tzinfo
 
+# Third-Party Lib
 import gi, cairo
+from widjet import Widjet
 
 gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
-from gi.repository import Gdk, GLib, Gtk
 
-class Main(Gtk.Window):
+from gi.repository import GLib, Gtk
+
+class Main(Widjet):
     def __init__(self):
-        super().__init__()
-        self.set_app_paintable(True)
-        self.set_visual(self.get_screen().get_rgba_visual())
-        self.set_default_size(500, 600)
-        self.set_decorated(False)
-
-        self.set_keep_below(True)
-        self.set_type_hint(Gdk.WindowTypeHint.DOCK)
-
-        monitor = self.get_display().get_primary_monitor()
-        geometry = monitor.get_geometry()
-        scale_factor = monitor.get_scale_factor()
-        self.move(geometry.width * scale_factor - 500, 0)
-
-        self.connect("button-press-event", self.click)
-        self.connect("button-release-event", self.release)
-        self.connect("motion-notify-event", self.mousemove)
+        super().__init__(500, 600)
 
         self.h = {}
         self.m = {}
         self.s = {}
-
-        self.drag = False
-        self.fixed = False
 
         self.get_time()
 
@@ -46,14 +30,6 @@ class Main(Gtk.Window):
         vbox = Gtk.VBox()
         vbox.add(self.draw_jst)
         vbox.add(self.draw_utc)
-
-        self.menu = Gtk.Menu()
-        end = Gtk.MenuItem().new_with_label("終了")
-        end.connect("activate", Gtk.main_quit)
-        fix = Gtk.CheckMenuItem().new_with_label("固定")
-        fix.connect("toggled", self.fix)
-        self.menu.add(end)
-        self.menu.add(fix)
 
         self.add(vbox)
     
@@ -95,8 +71,6 @@ class Main(Gtk.Window):
         space = 0.1
 
         ctx.scale(500, 500)
-        ctx.set_line_cap(cairo.LineCap.ROUND)
-        ctx.set_line_join(cairo.LineJoin.BEVEL)
         ctx.set_line_width(0.01)
         
         ctx.select_font_face("Noto Serif CJK JP", cairo.FontSlant.NORMAL, cairo.FontWeight.BOLD)
@@ -153,32 +127,6 @@ class Main(Gtk.Window):
         self.m["UTC"] = now_utc.minute
         self.s["JST"] = now_jst.second
         self.s["UTC"] = now_utc.second
-    
-    def click(self, widget, event):
-        if event.button == 1 and not self.fixed:
-            self.drag =  True
-            self.x_click = event.x
-            self.y_click = event.y
-        elif event.button == 3:
-            self.drag =  False
-            self.menu.show_all()
-            self.menu.popup_at_pointer()
-        else:
-            self.drag =  False
-            self.menu.popdown()
-
-    def release(self, widget, event):
-        self.drag =  False
-
-    def mousemove(self, widget, event):
-        if self.drag:
-            self.move(int(event.x_root - self.x_click), int(event.y_root - self.y_click))
-    
-    def fix(self, widget):
-        if widget.get_active():
-            self.fixed = True
-        else:
-            self.fixed = False
 
 if __name__ == '__main__':
     win = Main()
